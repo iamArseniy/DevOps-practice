@@ -1,0 +1,12 @@
+---
+managed_users:
+  - name: devuser
+    public_key: "{{ lookup('file', 'files/devuser_key.pub') }}"
+    sudo: true
+
+opt_base_dir: /opt
+
+ssh_password_authentication: "no"
+ssh_kbd_interactive_authentication: "no"
+
+ssh_restart_enabled: true

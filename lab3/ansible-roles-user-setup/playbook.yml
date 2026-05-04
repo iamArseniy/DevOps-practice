@@ -1,0 +1,9 @@
+---
+- name: Setup users, ssh and opt directories
+  hosts: target_servers
+  become: true
+
+  roles:
+    - users
+    - ssh_hardening
+    - opt_directory

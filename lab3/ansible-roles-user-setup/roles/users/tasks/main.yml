@@ -1,0 +1,58 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Install sudo
+  ansible.builtin.package:
+    name: sudo
+    state: present
+
+- name: Define sudo group name
+  ansible.builtin.set_fact:
+    sudo_group_name: "{{ 'sudo' if ansible_os_family == 'Debian' else 'wheel' }}"
+
+- name: Create users
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    shell: /bin/bash
+    create_home: true
+    state: present
+  loop: "{{ managed_users }}"
+
+- name: Add users to sudo group
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    groups: "{{ sudo_group_name }}"
+    append: true
+  loop: "{{ managed_users }}"
+  when: item.sudo | default(false)
+
+- name: Allow sudo without password for users
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/{{ item.name }}"
+    content: "{{ item.name }} ALL=(ALL) NOPASSWD:ALL\n"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: "visudo -cf %s"
+  loop: "{{ managed_users }}"
+  when: item.sudo | default(false)
+
+- name: Create .ssh directories
+  ansible.builtin.file:
+    path: "/home/{{ item.name }}/.ssh"
+    state: directory
+    owner: "{{ item.name }}"
+    group: "{{ item.name }}"
+    mode: "0700"
+  loop: "{{ managed_users }}"
+
+- name: Add public keys to authorized_keys
+  ansible.posix.authorized_key:
+    user: "{{ item.name }}"
+    key: "{{ item.public_key }}"
+    state: present
+  loop: "{{ managed_users }}"

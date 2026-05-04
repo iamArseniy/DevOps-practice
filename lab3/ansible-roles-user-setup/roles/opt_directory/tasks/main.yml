@@ -1,0 +1,9 @@
+---
+- name: Create user directories in /opt
+  ansible.builtin.file:
+    path: "{{ opt_base_dir }}/{{ item.name }}_workdir"
+    state: directory
+    owner: "{{ item.name }}"
+    group: "{{ item.name }}"
+    mode: "0660"
+  loop: "{{ managed_users }}"

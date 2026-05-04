@@ -1,0 +1,71 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check user exists
+      ansible.builtin.command: id devuser
+      register: user_check
+      changed_when: false
+
+    - name: Assert user exists
+      ansible.builtin.assert:
+        that:
+          - user_check.rc == 0
+
+    - name: Check sudo without password
+      ansible.builtin.command: su - devuser -c 'sudo -n whoami'
+      register: sudo_check
+      changed_when: false
+
+    - name: Assert sudo works
+      ansible.builtin.assert:
+        that:
+          - sudo_check.stdout == "root"
+
+    - name: Read authorized_keys
+      ansible.builtin.slurp:
+        src: /home/devuser/.ssh/authorized_keys
+      register: authorized_keys_content
+
+    - name: Assert public key exists
+      ansible.builtin.assert:
+        that:
+          - "'ssh-ed25519' in (authorized_keys_content.content | b64decode)"
+          - "'devuser' in (authorized_keys_content.content | b64decode)"
+
+    - name: Check PasswordAuthentication setting
+      ansible.builtin.command: grep -E '^PasswordAuthentication no' /etc/ssh/sshd_config
+      register: password_auth_check
+      changed_when: false
+
+    - name: Assert password authentication is disabled
+      ansible.builtin.assert:
+        that:
+          - password_auth_check.rc == 0
+
+    - name: Check KbdInteractiveAuthentication setting
+      ansible.builtin.command: grep -E '^KbdInteractiveAuthentication no' /etc/ssh/sshd_config
+      register: kbd_auth_check
+      changed_when: false
+
+    - name: Assert keyboard-interactive authentication is disabled
+      ansible.builtin.assert:
+        that:
+          - kbd_auth_check.rc == 0
+
+    - name: Check /opt directory
+      ansible.builtin.stat:
+        path: /opt/devuser_workdir
+      register: opt_dir
+
+    - name: Assert /opt directory properties
+      ansible.builtin.assert:
+        that:
+          - opt_dir.stat.exists
+          - opt_dir.stat.isdir
+          - opt_dir.stat.pw_name == "devuser"
+          - opt_dir.stat.gr_name == "devuser"
+          - opt_dir.stat.mode == "0660"

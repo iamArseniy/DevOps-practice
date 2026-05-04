@@ -1,0 +1,33 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: ../../collections/requirements.yml
+
+driver:
+  name: docker
+
+platforms:
+  - name: instance
+    image: geerlingguy/docker-ubuntu2204-ansible:latest
+    pre_build_image: true
+    privileged: true
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/roles"
+  inventory:
+    group_vars:
+      all:
+        managed_users:
+          - name: devuser
+            public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestPublicKeyForMolecule devuser"
+            sudo: true
+        opt_base_dir: /opt
+        ssh_password_authentication: "no"
+        ssh_kbd_interactive_authentication: "no"
+        ssh_restart_enabled: false
+
+verifier:
+  name: ansible
