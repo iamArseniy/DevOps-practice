@@ -1,0 +1,2 @@
+This file was added with the Dockerfile ADD instruction.
+Image contains Nginx web server and PostgreSQL database.
